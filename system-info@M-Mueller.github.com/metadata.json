@@ -1,0 +1,12 @@
+{
+    "extension-id": "system-info",
+    "uuid": "system-info@M-Mueller.github.com",
+    "name": "System-Info",
+    "description": "Shows basic system information in the top panel.",
+    "gettext-domain": "gnome-shell-extensions",
+    "settings-schema": "org.gnome.shell.extensions.system-info",
+    "shell-version": [
+        "3.18",
+        "3.20"
+    ]
+}
