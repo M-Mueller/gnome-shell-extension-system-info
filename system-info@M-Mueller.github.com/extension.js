@@ -140,6 +140,9 @@ const SystemInfoIndicator = Lang.Class({
     Extends: PanelMenu.Button,
 
     _cpu_label: null,
+    _mem_text: null,
+    _mem_label: null,
+
     _last_total: 0,
     _last_idle: 0,
 
@@ -147,15 +150,18 @@ const SystemInfoIndicator = Lang.Class({
     _mem: 0,
     _swap: 0,
     _gtop_cpu: 0,
+    _gtop_mem: 0,
 
     _timeout: null,
     _settingConnectID: null,
 
     _init: function() {
         this.parent(0.0, "SystemInfoIndicator");
-        let hbox = new St.BoxLayout({ style_class: "panel-status-menu-box" });
+        let hbox = new St.BoxLayout({ style_class: "panel-status-menu-box",
+                                      style: "spacing: 5px;"
+        });
         //let icon = new St.Icon({ icon_name: "drive-harddisk-symbolic.svg" });
-        let text = new St.Label({ text: "CPU: ",
+        let cpu_text = new St.Label({ text: "CPU:",
                                    y_expand: true,
                                    y_align: Clutter.ActorAlign.CENTER });
 
@@ -163,13 +169,24 @@ const SystemInfoIndicator = Lang.Class({
                                    y_expand: true,
                                    y_align: Clutter.ActorAlign.CENTER });
 
+        this._mem_text = new St.Label({ text: "Mem:",
+                                  y_expand: true,
+                                  y_align: Clutter.ActorAlign.CENTER });
+
+        this._mem_label = new St.Label({ text: "0%",
+                                  y_expand: true,
+                                  y_align: Clutter.ActorAlign.CENTER });
+
         //hbox.add_child(icon);
-        hbox.add_child(text);
+        hbox.add_child(cpu_text);
         hbox.add_child(this._cpu_label);
+        hbox.add_child(this._mem_text);
+        hbox.add_child(this._mem_label);
         this.actor.add_child(hbox);
 
         try {
             this._gtop_cpu = new GTop.glibtop_cpu();
+            this._gtop_mem = new GTop.glibtop_mem();
 
             let numcpus = GTop.glibtop_init().ncpu + 1; //somehow 0 means 1 cpu
             for(let i=0; i<numcpus; ++i) {
@@ -198,9 +215,9 @@ const SystemInfoIndicator = Lang.Class({
         this.menu.connect("open-state-changed", Lang.bind(this, this.refresh));
 
         // update refresh rate when settings change
-        this._settingConnectID = settings.connect("changed", Lang.bind(this, this.update_refresh_rate));
+        this._settingConnectID = settings.connect("changed", Lang.bind(this, this.load_settings));
 
-        this.update_refresh_rate();
+        this.load_settings();
         this.refresh();
     },
 
@@ -230,6 +247,16 @@ const SystemInfoIndicator = Lang.Class({
 
             this._last_total = this._gtop_cpu.total;
             this._last_idle = this._gtop_cpu.idle;
+
+            if(this._mem_text.visible)
+            {
+                GTop.glibtop_get_mem(this._gtop_mem);
+                let total_mem = this._gtop_mem.total;
+                let used_mem = this._gtop_mem.user;
+
+                let mem_percentage = Math.round((used_mem / total_mem)*100);
+                this._mem_label.text = mem_percentage.toString() + "%";
+            }
         } catch(e) {
             log(e);
         }
@@ -253,7 +280,7 @@ const SystemInfoIndicator = Lang.Class({
         ]);
     },
 
-    update_refresh_rate: function() {
+    load_settings: function() {
         if(this._timeout) {
             Mainloop.source_remove(this._timeout);
         }
@@ -269,6 +296,12 @@ const SystemInfoIndicator = Lang.Class({
             this.refresh();
             return true; // restart timeout
         }));
+
+        let show_memory = settings.get_boolean("show-memory");
+        this._mem_label.visible = show_memory;
+        this._mem_text.visible = show_memory;
+
+        this.refresh();
     },
 });
 

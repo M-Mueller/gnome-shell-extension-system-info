@@ -27,21 +27,31 @@ const SystemInfoPrefsWidget = new GObject.Class({
         this.row_spacing = this.column_spacing = 6;
         this.set_orientation(Gtk.Orientation.HORIZONTAL);
 
-        this.add(new Gtk.Label({ label: "Refresh rate",
+        let refresh_rate_label = new Gtk.Label({ label: _("Refresh rate"),
                                  halign: Gtk.Align.START,
-                                 hexpand: true }));
+                                 hexpand: true });
 
-        let entry = new Gtk.SpinButton({
+        let refresh_rate = new Gtk.SpinButton({
             adjustment: new Gtk.Adjustment({
                 lower: 500,
                 upper: 100000,
                 step_increment: 500
             })
         });
-        this.add(entry);
+        this.attach(refresh_rate_label, 0, 0, 1, 1);
+        this.attach(refresh_rate, 1, 0, 1, 1);
+
+        let show_memory_label = new Gtk.Label({ label: _("Show memory in panel"),
+                                 halign: Gtk.Align.START,
+                                 hexpand: true });
+
+        let show_memory = new Gtk.Switch({ halign: Gtk.Align.START });
+        this.attach(show_memory_label, 0, 1, 1, 1);
+        this.attach(show_memory, 1, 1, 1, 1);
 
         this._settings = Convenience.getSettings();
-        this._settings.bind('refresh-rate', entry, 'value', Gio.SettingsBindFlags.DEFAULT);
+        this._settings.bind('refresh-rate', refresh_rate, 'value', Gio.SettingsBindFlags.DEFAULT);
+        this._settings.bind('show-memory', show_memory, 'active', Gio.SettingsBindFlags.DEFAULT);
     }
 });
 

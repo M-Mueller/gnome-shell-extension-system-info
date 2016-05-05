@@ -7,5 +7,10 @@
           <description>The interval between updates in milliseconds</description>
           <range min="500" max="100000"/>
       </key>
+      <key type="b" name="show-memory">
+          <default>false</default>
+          <summary>Show memory usage in top panel</summary>
+          <description>Show percentage of used memory in top panel</description>
+      </key>
   </schema>
 </schemalist>
