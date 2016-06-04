@@ -207,6 +207,10 @@ const SystemInfoIndicator = Lang.Class({
 
 	    this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
+        let systemMonitorItem = new PopupMenu.PopupMenuItem(_("System Monitor"));
+        systemMonitorItem.connect("activate", Lang.bind(this, this.show_systemmonitor));
+        this.menu.addMenuItem(systemMonitorItem);
+
         let settingsItem = new PopupMenu.PopupMenuItem(_("Settings"));
         settingsItem.connect("activate", Lang.bind(this, this.show_settings));
         this.menu.addMenuItem(settingsItem);
@@ -278,6 +282,10 @@ const SystemInfoIndicator = Lang.Class({
             "gnome-shell-extension-prefs",
             Me.uuid
         ]);
+    },
+
+    show_systemmonitor: function() {
+        Util.spawnApp(["gnome-system-monitor"]);
     },
 
     load_settings: function() {
