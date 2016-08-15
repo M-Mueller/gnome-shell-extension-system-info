@@ -27,15 +27,15 @@ const SystemInfoPrefsWidget = new GObject.Class({
         this.row_spacing = this.column_spacing = 6;
         this.set_orientation(Gtk.Orientation.HORIZONTAL);
 
-        let refresh_rate_label = new Gtk.Label({ label: _("Refresh rate"),
+        let refresh_rate_label = new Gtk.Label({ label: _("Refresh rate (seconds)"),
                                  halign: Gtk.Align.START,
                                  hexpand: true });
 
         let refresh_rate = new Gtk.SpinButton({
             adjustment: new Gtk.Adjustment({
-                lower: 500,
-                upper: 100000,
-                step_increment: 500
+                lower: 1,
+                upper: 100,
+                step_increment: 1
             })
         });
         this.attach(refresh_rate_label, 0, 0, 1, 1);

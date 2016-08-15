@@ -2,10 +2,10 @@
 <schemalist gettext-domain="gnome-shell-extensions">
   <schema path="/org/gnome/shell/extensions/system-info/" id="org.gnome.shell.extensions.system-info">
       <key type="i" name="refresh-rate">
-          <default>2000</default>
-          <summary>The interval between updates in milliseconds</summary>
-          <description>The interval between updates in milliseconds</description>
-          <range min="500" max="100000"/>
+          <default>2</default>
+          <summary>The interval between updates in seconds</summary>
+          <description>The interval between updates in seconds</description>
+          <range min="1" max="100"/>
       </key>
       <key type="b" name="show-memory">
           <default>false</default>

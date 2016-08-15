@@ -153,6 +153,8 @@ const SystemInfoIndicator = Lang.Class({
     _gtop_mem: 0,
 
     _timeout: null,
+	_refresh_rate: 2,
+
     _settingConnectID: null,
 
     _init: function() {
@@ -160,7 +162,6 @@ const SystemInfoIndicator = Lang.Class({
         let hbox = new St.BoxLayout({ style_class: "panel-status-menu-box",
                                       style: "spacing: 5px;"
         });
-        //let icon = new St.Icon({ icon_name: "drive-harddisk-symbolic.svg" });
         let cpu_text = new St.Label({ text: "CPU:",
                                    y_expand: true,
                                    y_align: Clutter.ActorAlign.CENTER });
@@ -177,7 +178,6 @@ const SystemInfoIndicator = Lang.Class({
                                   y_expand: true,
                                   y_align: Clutter.ActorAlign.CENTER });
 
-        //hbox.add_child(icon);
         hbox.add_child(cpu_text);
         hbox.add_child(this._cpu_label);
         hbox.add_child(this._mem_text);
@@ -217,6 +217,8 @@ const SystemInfoIndicator = Lang.Class({
 
         // refresh items when menu is opened
         this.menu.connect("open-state-changed", Lang.bind(this, this.refresh));
+		// the timeout is sometimes not working after suspend, this restarts it everytime the label is clicked
+        this.menu.connect("open-state-changed", Lang.bind(this, this.init_timeout));
 
         // update refresh rate when settings change
         this._settingConnectID = settings.connect("changed", Lang.bind(this, this.load_settings));
@@ -229,10 +231,12 @@ const SystemInfoIndicator = Lang.Class({
         Mainloop.source_remove(this._timeout);
         this._timeout = null;
 
-        if(_this._settingConnectID) {
+        if(this._settingConnectID) {
             settings.disconnect(this._settingConnectID);
             this._settingConnectID = null;
         }
+
+		this.parent();
     },
 
     refresh: function() {
@@ -288,24 +292,28 @@ const SystemInfoIndicator = Lang.Class({
         Util.spawnApp(["gnome-system-monitor"]);
     },
 
-    load_settings: function() {
+	init_timeout: function() {
         if(this._timeout) {
             Mainloop.source_remove(this._timeout);
         }
-
-        // call refresh in fixed intervals
-        let refresh_rate = settings.get_int("refresh-rate");
-        if(isNaN(refresh_rate)) {
-            log("Invalid refresh-rate");
-            refresh_rate = 2000;
-        }
-        refresh_rate = Math.max(500, refresh_rate);
-        this._timeout = Mainloop.timeout_add(refresh_rate, Lang.bind(this, function() {
+		
+        // call refresh in fixed intervals (timeout_add_seconds has more efficient system power usage)
+		this._timeout = Mainloop.timeout_add_seconds(this._refresh_rate, Lang.bind(this, function() {
             this.refresh();
             return true; // restart timeout
         }));
+	},
 
-        let show_memory = settings.get_boolean("show-memory");
+    load_settings: function() {
+        let refresh_rate = settings.get_int("refresh-rate");
+        if(isNaN(refresh_rate)) {
+            log("Invalid refresh-rate");
+            refresh_rate = 2;
+        }
+        this._refresh_rate = Math.max(1, refresh_rate);
+		this.init_timeout();
+
+		let show_memory = settings.get_boolean("show-memory");
         this._mem_label.visible = show_memory;
         this._mem_text.visible = show_memory;
 
@@ -319,7 +327,7 @@ function init() {
 
 function enable() {
     systemInfoIndicator = new SystemInfoIndicator();
-    Main.panel.addToStatusArea("SystemInfoIndicator", systemInfoIndicator, 1, "right");
+    Main.panel.addToStatusArea("SystemInfoIndicator", systemInfoIndicator, 0, "right");
 }
 
 function disable() {
