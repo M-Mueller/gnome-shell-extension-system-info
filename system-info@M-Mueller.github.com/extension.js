@@ -3,6 +3,7 @@ const Mainloop  = imports.mainloop;
 const GLib      = imports.gi.GLib;
 const St        = imports.gi.St;
 const Clutter   = imports.gi.Clutter;
+const Shell		= imports.gi.Shell;
 const Main      = imports.ui.main;
 const PanelMenu	= imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
@@ -65,17 +66,17 @@ const Cpu = Lang.Class({
     }
 });
 
-// sets the label.text to e.g. 'Memory: 316.8 MiB of 4.9 GiB (6.3%)'
-function set_mem_label_text(label, name, total, used) {
+// returns a string repesentation of used bytes e.g. '316.8 MiB of 4.9 GiB (6.3%)'
+function get_byte_usage_string(total, used) {
     if(total > 0) {
         let percentage = ((used / total)*100).toFixed(1);
         // convert to nicer display string including unit
         total = GLib.format_size_full(total, GLib.FormatSizeFlags.IEC_UNITS)
         used = GLib.format_size_full(used, GLib.FormatSizeFlags.IEC_UNITS)
         let ratio = used + " of " + total;
-        label.text = name + ": " + ratio + " (" + percentage.toString() + "%)";
+        return ratio + " (" + percentage.toString() + "%)";
     } else {
-        label.text = name + ": Unavailable";
+        return "Unavailable";
     }
 }
 
@@ -103,7 +104,7 @@ const Mem = Lang.Class({
         let total = this._gtop_mem.total;
         let used = this._gtop_mem.user;
 
-        set_mem_label_text(this.label, _("Memory"), total, used);
+        this.label.text = _("Memory") + ": " + get_byte_usage_string(total, used);
     }
 });
 
@@ -131,9 +132,47 @@ const Swap = Lang.Class({
         let total = this._gtop_swap.total;
         let used = this._gtop_swap.used;
 
-        set_mem_label_text(this.label, _("Swap"), total, used);
+        this.label.text = _("Swap") + ": " + get_byte_usage_string(total, used);
     }
 });
+
+const Mount = Lang.Class({
+    Name: "Mount",
+    Extends: PopupMenu.PopupMenuItem,
+
+    _parent: 0,
+	_mount_point: 0,
+    _gtop_fsusage: 0,
+
+    _init: function(mount_point) {
+        this.parent("");
+
+		this._mount_point = mount_point;
+        try {
+            this._gtop_fsusage = new GTop.glibtop_fsusage();
+        } catch(e) {
+            log(e);
+        }
+
+        this.refresh();
+    },
+
+    refresh: function() {
+        GTop.glibtop_get_fsusage(this._gtop_fsusage, this._mount_point);
+        let total = this._gtop_fsusage.blocks * this._gtop_fsusage.block_size;
+        let used = this._gtop_fsusage.bfree * this._gtop_fsusage.block_size;
+
+        this.label.text = this._mount_point + "\n" + get_byte_usage_string(total, used);
+    }
+});
+
+function interesting_mountpoint(mount){
+	// from https://github.com/paradoxxxzero/gnome-shell-system-monitor-applet
+    if (mount.length < 3)
+        return false;
+
+    return ((mount[0].indexOf("/dev/") == 0 || mount[2].toLowerCase() == "nfs") && mount[2].toLowerCase() != "udf");
+}
 
 const SystemInfoIndicator = Lang.Class({
     Name: "SystemInfoIndicator",
@@ -149,8 +188,11 @@ const SystemInfoIndicator = Lang.Class({
     _cpus: new Array(),
     _mem: 0,
     _swap: 0,
+	_mounts: new Array(),
     _gtop_cpu: 0,
     _gtop_mem: 0,
+
+	_mount_insert_index: 0, // index after which mount entries are inserted
 
     _timeout: null,
 	_refresh_rate: 2,
@@ -204,6 +246,11 @@ const SystemInfoIndicator = Lang.Class({
 
         this._swap = new Swap();
         this.menu.addMenuItem(this._swap);
+
+	    this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+		
+		this._mount_insert_index = this.menu.numMenuItems;
+		this.refresh_mounts();
 
 	    this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
@@ -269,6 +316,8 @@ const SystemInfoIndicator = Lang.Class({
             log(e);
         }
 
+		this.refresh_mounts();
+
         // only update menu items if the menu is open
         if(this.menu.isOpen) {
             for(let i=0; i<this._cpus.length; ++i) {
@@ -278,8 +327,37 @@ const SystemInfoIndicator = Lang.Class({
                 this._mem.refresh();
             if(this._swap)
                 this._swap.refresh();
+            for(let i=0; i<this._mounts.length; ++i) {
+                this._mounts[i].refresh();
+            }
         }
     },
+
+	refresh_mounts: function() {
+		// mounts can change anytime, so the menu cannot be static like for cpus
+		for (let i=0; i<this._mounts.length; ++i) {
+			this._mounts[i].destroy();
+		}
+		this._mounts = []
+		try {
+			// from https://github.com/paradoxxxzero/gnome-shell-system-monitor-applet
+			// couldn't figure out what glibtop_get_mountlist is supposed to return
+			let mount_lines = Shell.get_file_contents_utf8_sync('/etc/mtab').split("\n");
+			let mounts = []
+			for(let mount_line in mount_lines) {
+				let mount = mount_lines[mount_line].split(" ");
+				if(interesting_mountpoint(mount) && mounts.indexOf(mount[1]) < 0) {
+					mounts.push(mount[1]);
+				}
+			}
+			for(let i=0; i<mounts.length; ++i) {
+				this._mounts[i] = new Mount(mounts[i]);
+				this.menu.addMenuItem(this._mounts[i], this._mount_insert_index+i);
+			}
+		} catch(e) {
+			log(e);
+		}
+	},
 
     show_settings: function () {
         Util.spawn([
