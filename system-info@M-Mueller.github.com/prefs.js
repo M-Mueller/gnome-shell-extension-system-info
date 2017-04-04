@@ -49,9 +49,18 @@ const SystemInfoPrefsWidget = new GObject.Class({
         this.attach(show_memory_label, 0, 1, 1, 1);
         this.attach(show_memory, 1, 1, 1, 1);
 
+        let show_mounts_label = new Gtk.Label({ label: _("Show filesystem usage"),
+                                 halign: Gtk.Align.START,
+                                 hexpand: true });
+
+        let show_mounts = new Gtk.Switch({ halign: Gtk.Align.START });
+        this.attach(show_mounts_label, 0, 2, 1, 1);
+        this.attach(show_mounts, 1, 2, 1, 1);
+
         this._settings = Convenience.getSettings();
         this._settings.bind('refresh-rate', refresh_rate, 'value', Gio.SettingsBindFlags.DEFAULT);
         this._settings.bind('show-memory', show_memory, 'active', Gio.SettingsBindFlags.DEFAULT);
+        this._settings.bind('show-mounts', show_mounts, 'active', Gio.SettingsBindFlags.DEFAULT);
     }
 });
 

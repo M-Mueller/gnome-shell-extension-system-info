@@ -12,5 +12,10 @@
           <summary>Show memory usage in top panel</summary>
           <description>Show percentage of used memory in top panel</description>
       </key>
+      <key type="b" name="show-mounts">
+          <default>true</default>
+          <summary>Show mounted filesystems usage</summary>
+          <description>Show free and total size of mounted filesystems in menu</description>
+      </key>
   </schema>
 </schemalist>

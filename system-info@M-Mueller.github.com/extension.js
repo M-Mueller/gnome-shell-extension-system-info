@@ -339,23 +339,27 @@ const SystemInfoIndicator = Lang.Class({
 			this._mounts[i].destroy();
 		}
 		this._mounts = []
-		try {
-			// from https://github.com/paradoxxxzero/gnome-shell-system-monitor-applet
-			// couldn't figure out what glibtop_get_mountlist is supposed to return
-			let mount_lines = Shell.get_file_contents_utf8_sync('/etc/mtab').split("\n");
-			let mounts = []
-			for(let mount_line in mount_lines) {
-				let mount = mount_lines[mount_line].split(" ");
-				if(interesting_mountpoint(mount) && mounts.indexOf(mount[1]) < 0) {
-					mounts.push(mount[1]);
+
+		let show_mounts = settings.get_boolean("show-mounts");
+		if (show_mounts) {
+			try {
+				// from https://github.com/paradoxxxzero/gnome-shell-system-monitor-applet
+				// couldn't figure out what glibtop_get_mountlist is supposed to return
+				let mount_lines = Shell.get_file_contents_utf8_sync('/etc/mtab').split("\n");
+				let mounts = []
+					for(let mount_line in mount_lines) {
+						let mount = mount_lines[mount_line].split(" ");
+						if(interesting_mountpoint(mount) && mounts.indexOf(mount[1]) < 0) {
+							mounts.push(mount[1]);
+						}
+					}
+				for(let i=0; i<mounts.length; ++i) {
+					this._mounts[i] = new Mount(mounts[i]);
+					this.menu.addMenuItem(this._mounts[i], this._mount_insert_index+i);
 				}
+			} catch(e) {
+				log(e);
 			}
-			for(let i=0; i<mounts.length; ++i) {
-				this._mounts[i] = new Mount(mounts[i]);
-				this.menu.addMenuItem(this._mounts[i], this._mount_insert_index+i);
-			}
-		} catch(e) {
-			log(e);
 		}
 	},
 
