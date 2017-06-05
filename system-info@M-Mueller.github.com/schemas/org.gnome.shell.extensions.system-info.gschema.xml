@@ -17,5 +17,10 @@
           <summary>Show mounted filesystems usage</summary>
           <description>Show free and total size of mounted filesystems in menu</description>
       </key>
+	  <key type="i" name="group-cpus">
+		  <default>0</default>
+          <summary>Group multiple CPU cores in one entry</summary>
+          <description>Group multiple CPU cores in one entry to save vertical space</description>
+    </key>
   </schema>
 </schemalist>

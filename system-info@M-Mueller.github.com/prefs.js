@@ -57,10 +57,22 @@ const SystemInfoPrefsWidget = new GObject.Class({
         this.attach(show_mounts_label, 0, 2, 1, 1);
         this.attach(show_mounts, 1, 2, 1, 1);
 
+        let group_cpus_label = new Gtk.Label({ label: _("Group CPUs"),
+                                 halign: Gtk.Align.START,
+                                 hexpand: true });
+
+        let group_cpus = new Gtk.ComboBoxText({ halign: Gtk.Align.START });
+		group_cpus.append_text('None');
+		group_cpus.append_text('2');
+		group_cpus.append_text('4');
+        this.attach(group_cpus_label, 0, 3, 1, 1);
+        this.attach(group_cpus, 1, 3, 1, 1);
+
         this._settings = Convenience.getSettings();
         this._settings.bind('refresh-rate', refresh_rate, 'value', Gio.SettingsBindFlags.DEFAULT);
         this._settings.bind('show-memory', show_memory, 'active', Gio.SettingsBindFlags.DEFAULT);
         this._settings.bind('show-mounts', show_mounts, 'active', Gio.SettingsBindFlags.DEFAULT);
+        this._settings.bind('group-cpus', group_cpus, 'active', Gio.SettingsBindFlags.DEFAULT);
     }
 });
 

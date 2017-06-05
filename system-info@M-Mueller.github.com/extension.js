@@ -29,16 +29,16 @@ const Cpu = Lang.Class({
     Name: "Cpu",
     Extends: PopupMenu.PopupMenuItem,
 
-    index: 0,
+    indices: [],
 
     _parent: 0,
     _gtop_cpu: 0,
     _last_total: 0,
     _last_idle: 0,
 
-    _init: function(cpu_index) {
+    _init: function(cpu_indices) {
         this.parent("");
-        this.index = cpu_index;
+        this.indices = cpu_indices;
 
         try {
             this._gtop_cpu = new GTop.glibtop_cpu();
@@ -50,19 +50,34 @@ const Cpu = Lang.Class({
     },
 
     refresh: function() {
-        GTop.glibtop_get_cpu(this._gtop_cpu);
-        let total = this._gtop_cpu.xcpu_total[this.index] - this._last_total;
-        let idle = this._gtop_cpu.xcpu_idle[this.index] - this._last_idle;
+		GTop.glibtop_get_cpu(this._gtop_cpu);
+
+		let total = 0;
+		let idle = 0;
+		let num_indices = this.indices.length;
+		for(let i=0; i<num_indices; ++i) {
+			let index = this.indices[i];
+			total += this._gtop_cpu.xcpu_total[index];
+			idle += this._gtop_cpu.xcpu_idle[index];
+		}
+		total = total/num_indices;
+		idle = idle/num_indices;
+
+		var rel_total = total - this._last_total;
+		var rel_idle = idle - this._last_idle;
 
         // only update text if changed
         if(total > 0) {
             // display the percentage of the total cpu time that is not idle
-            let cpu_percentage = (100.0 - (idle / total)*100).toFixed(1);
-            this.label.text = "CPU" + this.index.toString() + ": " + cpu_percentage.toString() + "%";
+            let cpu_percentage = (100.0 - (rel_idle / rel_total)*100).toFixed(1);
+			let indices_text = this.indices[0];
+			if (num_indices > 1)
+				indices_text += " - " + this.indices[num_indices-1];
+            this.label.text = "CPU " + indices_text + ": " + cpu_percentage.toString() + "%";
         }
 
-        this._last_total = this._gtop_cpu.xcpu_total[this.index];
-        this._last_idle = this._gtop_cpu.xcpu_idle[this.index];
+        this._last_total = total;
+        this._last_idle = idle;
     }
 });
 
@@ -207,6 +222,7 @@ const SystemInfoIndicator = Lang.Class({
 
     _timeout: null,
 	_refresh_rate: 2,
+	_cpus_per_group: 1,
 
     _settingConnectID: null,
 
@@ -241,11 +257,7 @@ const SystemInfoIndicator = Lang.Class({
             this._gtop_cpu = new GTop.glibtop_cpu();
             this._gtop_mem = new GTop.glibtop_mem();
 
-            let numcpus = GTop.glibtop_init().ncpu + 1; //somehow 0 means 1 cpu
-            for(let i=0; i<numcpus; ++i) {
-                this._cpus[i] = new Cpu(i);
-                this.menu.addMenuItem(this._cpus[i]);
-            }
+			this.refresh_cpus();
         } catch(e) {
             log(e);
         }
@@ -344,8 +356,27 @@ const SystemInfoIndicator = Lang.Class({
         }
     },
 
+	// Queries the number of CPUs and groups them according to current settings
+	refresh_cpus: function() {
+		for (let i=0; i<this._cpus.length; ++i) {
+			this._cpus[i].destroy();
+		}
+		this._cpus = []
+
+		let numcpus = GTop.glibtop_init().ncpu + 1; //somehow 0 means 1 cpu
+		for(let i=0; i<numcpus; i+=this._cpus_per_group) {
+			let cpu_indices = [];
+			for(let j=0; j<this._cpus_per_group; ++j) {
+				cpu_indices.push(i+j);
+			}
+			let cpu = new Cpu(cpu_indices);
+			this._cpus.push(cpu);
+			this.menu.addMenuItem(cpu, i/this._cpus_per_group);
+		}
+	},
+
 	refresh_mounts: function() {
-		// mounts can change anytime, so the menu cannot be static like for cpus
+		// mounts can change anytime, so the menu cannot be static 
 		for (let i=0; i<this._mounts.length; ++i) {
 			this._mounts[i].destroy();
 		}
@@ -358,12 +389,12 @@ const SystemInfoIndicator = Lang.Class({
 				// couldn't figure out what glibtop_get_mountlist is supposed to return
 				let mount_lines = Shell.get_file_contents_utf8_sync('/etc/mtab').split("\n");
 				let mounts = []
-					for(let mount_line in mount_lines) {
-						let mount = mount_lines[mount_line].split(" ");
-						if(interesting_mountpoint(mount) && mounts.indexOf(mount[1]) < 0) {
-							mounts.push(mount[1]);
-						}
+				for(let mount_line in mount_lines) {
+					let mount = mount_lines[mount_line].split(" ");
+					if(interesting_mountpoint(mount) && mounts.indexOf(mount[1]) < 0) {
+						mounts.push(mount[1]);
 					}
+				}
 				for(let i=0; i<mounts.length; ++i) {
 					this._mounts[i] = new Mount(mounts[i]);
 					this.menu.addMenuItem(this._mounts[i], this._mount_insert_index+i);
@@ -409,6 +440,23 @@ const SystemInfoIndicator = Lang.Class({
 		let show_memory = settings.get_boolean("show-memory");
         this._mem_label.visible = show_memory;
         this._mem_text.visible = show_memory;
+
+		let cpus_per_group = settings.get_int("group-cpus");
+		switch(cpus_per_group) { // matches the values in prefs.js
+		case 0:
+			cpus_per_group = 1;
+			break;
+		case 1:
+			cpus_per_group = 2;
+			break;
+		case 2:
+			cpus_per_group = 4;
+			break;
+		default:
+			cpus_per_group = 1;
+		}
+		this._cpus_per_group = cpus_per_group;
+		this.refresh_cpus();
 
         this.refresh();
     },
