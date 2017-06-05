@@ -160,9 +160,20 @@ const Mount = Lang.Class({
     refresh: function() {
         GTop.glibtop_get_fsusage(this._gtop_fsusage, this._mount_point);
         let total = this._gtop_fsusage.blocks * this._gtop_fsusage.block_size;
-        let used = this._gtop_fsusage.bfree * this._gtop_fsusage.block_size;
+        let free = this._gtop_fsusage.bavail * this._gtop_fsusage.block_size; // available for non-superusers
+		let used = total - this._gtop_fsusage.bfree * this._gtop_fsusage.block_size;
 
-        this.label.text = this._mount_point + "\n" + get_byte_usage_string(total, used);
+		let text = "Unavailable";
+		if(total > 0) {
+			let percentage = ((used / total)*100).toFixed(1);
+			// convert to nicer display string including unit
+			total = GLib.format_size_full(total, GLib.FormatSizeFlags.DEFAULT)
+			free = GLib.format_size_full(free, GLib.FormatSizeFlags.DEFAULT)
+			let ratio = free + " free of " + total;
+			text = ratio + " (" + percentage.toString() + "% used)";
+		}
+
+        this.label.text = this._mount_point + "\n" + text;
     }
 });
 
