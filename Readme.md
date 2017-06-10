@@ -10,3 +10,4 @@ Copy the **system-info@<span>M-Mueller.github</span>.com** folder to ~/.local/sh
 ### Compatible with Gnome Shell:
 - 3.18
 - 3.20
+- 3.22
