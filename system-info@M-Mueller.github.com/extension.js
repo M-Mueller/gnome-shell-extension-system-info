@@ -218,8 +218,6 @@ const SystemInfoIndicator = Lang.Class({
     _gtop_cpu: 0,
     _gtop_mem: 0,
 
-	_mount_insert_index: 0, // index after which mount entries are inserted
-
     _timeout: null,
 	_refresh_rate: 2,
 	_cpus_per_group: 1,
@@ -272,7 +270,6 @@ const SystemInfoIndicator = Lang.Class({
 
 	    this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 		
-		this._mount_insert_index = this.menu.numMenuItems;
 		this.refresh_mounts();
 
 	    this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
@@ -395,9 +392,11 @@ const SystemInfoIndicator = Lang.Class({
 						mounts.push(mount[1]);
 					}
 				}
+
+				let mount_insert_index = this.menu.numMenuItems - 3; // afterwards: separator, system monitor, settings
 				for(let i=0; i<mounts.length; ++i) {
 					this._mounts[i] = new Mount(mounts[i]);
-					this.menu.addMenuItem(this._mounts[i], this._mount_insert_index+i);
+					this.menu.addMenuItem(this._mounts[i], mount_insert_index+i);
 				}
 			} catch(e) {
 				log(e);
