@@ -16,11 +16,7 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
 
-try {
-    const GTop = imports.gi.GTop;
-} catch(e) {
-    log(e);
-}
+const GTop = imports.gi.GTop;
 
 let systemInfoIndicator;
 let settings;
@@ -197,7 +193,17 @@ function interesting_mountpoint(mount){
     if (mount.length < 3)
         return false;
 
-    return ((mount[0].indexOf("/dev/") == 0 || mount[2].toLowerCase() == "nfs") && mount[2].toLowerCase() != "udf");
+    if (mount[2].toLowerCase() == "udf")
+		return false;
+	if (mount[2].toLowerCase() == "nfs")
+		return true;
+	if (mount[0].indexOf("/var/lib/docker") == 0)
+		return false;
+	if (mount[0].indexOf("/snap") == 0)
+		return false;
+	if (mount[0].indexOf("/dev/") == 0)
+		return true;
+	return false;
 }
 
 const SystemInfoIndicator = Lang.Class({
