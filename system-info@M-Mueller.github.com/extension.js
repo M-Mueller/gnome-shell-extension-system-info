@@ -199,7 +199,7 @@ function interesting_mountpoint(mount){
 		return true;
 	if (mount[0].indexOf("/var/lib/docker") == 0)
 		return false;
-	if (mount[0].indexOf("/snap") == 0)
+	if (mount[1].indexOf("/snap") == 0)
 		return false;
 	if (mount[0].indexOf("/dev/") == 0)
 		return true;
