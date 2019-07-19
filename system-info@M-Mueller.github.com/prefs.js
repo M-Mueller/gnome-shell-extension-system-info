@@ -62,9 +62,9 @@ const SystemInfoPrefsWidget = new GObject.Class({
                                  hexpand: true });
 
         let group_cpus = new Gtk.ComboBoxText({ halign: Gtk.Align.START });
-		group_cpus.append_text('None');
-		group_cpus.append_text('2');
-		group_cpus.append_text('4');
+        group_cpus.append_text('None');
+        group_cpus.append_text('2');
+        group_cpus.append_text('4');
         this.attach(group_cpus_label, 0, 3, 1, 1);
         this.attach(group_cpus, 1, 3, 1, 1);
 
