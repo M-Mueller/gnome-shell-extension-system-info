@@ -21,151 +21,154 @@ const GTop = imports.gi.GTop;
 let systemInfoIndicator;
 let settings;
 
-class Cpu extends PopupMenu.PopupMenuItem {
-    constructor(cpu_indices) {
-        super("");
-        this.indices = cpu_indices;
-        this._parent = 0;
-        this._gtop_cpu = 0;
-        this._last_total = 0;
-        this._last_idle = 0;
+var Cpu = GObject.registerClass({},
+  class Cpu extends PopupMenu.PopupMenuItem {
+    _init(cpu_indices) {
+      super._init("", {});
+      this.indices = cpu_indices;
+      this._parent = 0;
+      this._gtop_cpu = 0;
+      this._last_total = 0;
+      this._last_idle = 0;
 
-        try {
-            this._gtop_cpu = new GTop.glibtop_cpu();
-        } catch(e) {
-            log(e);
-        }
+      try {
+        this._gtop_cpu = new GTop.glibtop_cpu();
+      } catch(e) {
+        log(e);
+      }
 
-        this.refresh();
+      this.refresh();
     }
 
     refresh() {
-        GTop.glibtop_get_cpu(this._gtop_cpu);
+      GTop.glibtop_get_cpu(this._gtop_cpu);
 
-        let total = 0;
-        let idle = 0;
-        let num_indices = this.indices.length;
-        for(let i=0; i<num_indices; ++i) {
-          let index = this.indices[i];
-          total += this._gtop_cpu.xcpu_total[index];
-          idle += this._gtop_cpu.xcpu_idle[index];
-        }
-        total = total/num_indices;
-        idle = idle/num_indices;
+      let total = 0;
+      let idle = 0;
+      let num_indices = this.indices.length;
+      for(let i=0; i<num_indices; ++i) {
+        let index = this.indices[i];
+        total += this._gtop_cpu.xcpu_total[index];
+        idle += this._gtop_cpu.xcpu_idle[index];
+      }
+      total = total/num_indices;
+      idle = idle/num_indices;
 
-        var rel_total = total - this._last_total;
-        var rel_idle = idle - this._last_idle;
+      var rel_total = total - this._last_total;
+      var rel_idle = idle - this._last_idle;
 
-        // only update text if changed
-        if(total > 0) {
-            // display the percentage of the total cpu time that is not idle
-            let cpu_percentage = (100.0 - (rel_idle / rel_total)*100).toFixed(1);
-            let indices_text = this.indices[0];
-            if (num_indices > 1)
-              indices_text += " - " + this.indices[num_indices-1];
-            this.label.text = "CPU " + indices_text + ": " + cpu_percentage.toString() + "%";
-        }
+      // only update text if changed
+      if(total > 0) {
+        // display the percentage of the total cpu time that is not idle
+        let cpu_percentage = (100.0 - (rel_idle / rel_total)*100).toFixed(1);
+        let indices_text = this.indices[0];
+        if (num_indices > 1)
+          indices_text += " - " + this.indices[num_indices-1];
+        this.label.text = "CPU " + indices_text + ": " + cpu_percentage.toString() + "%";
+      }
 
-        this._last_total = total;
-        this._last_idle = idle;
+      this._last_total = total;
+      this._last_idle = idle;
     }
-};
+  });
 
 // returns a string repesentation of used bytes e.g. '316.8 MiB of 4.9 GiB (6.3%)'
 function get_byte_usage_string(total, used) {
-    if(total > 0) {
-        let percentage = ((used / total)*100).toFixed(1);
-        // convert to nicer display string including unit
-        total = GLib.format_size_full(total, GLib.FormatSizeFlags.IEC_UNITS)
-        used = GLib.format_size_full(used, GLib.FormatSizeFlags.IEC_UNITS)
-        let ratio = used + " of " + total;
-        return ratio + " (" + percentage.toString() + "%)";
-    } else {
-        return "Unavailable";
-    }
+  if(total > 0) {
+    let percentage = ((used / total)*100).toFixed(1);
+    // convert to nicer display string including unit
+    total = GLib.format_size_full(total, GLib.FormatSizeFlags.IEC_UNITS)
+    used = GLib.format_size_full(used, GLib.FormatSizeFlags.IEC_UNITS)
+    let ratio = used + " of " + total;
+    return ratio + " (" + percentage.toString() + "%)";
+  } else {
+    return "Unavailable";
+  }
 }
 
-class Mem extends PopupMenu.PopupMenuItem {
+var Mem = GObject.registerClass({},
+  class Mem extends PopupMenu.PopupMenuItem {
+    _init() {
+      super._init("", {});
 
-    constructor() {
-        super("");
+      try {
+        this._gtop_mem = new GTop.glibtop_mem();
+      } catch(e) {
+        this._gtop_mem = null;
+        log(e);
+      }
 
-        try {
-            this._gtop_mem = new GTop.glibtop_mem();
-        } catch(e) {
-            this._gtop_mem = null;
-            log(e);
-        }
-
-        this.refresh();
+      this.refresh();
     }
 
     refresh() {
-        GTop.glibtop_get_mem(this._gtop_mem);
-        let total = this._gtop_mem.total;
-        let used = this._gtop_mem.user;
+      GTop.glibtop_get_mem(this._gtop_mem);
+      let total = this._gtop_mem.total;
+      let used = this._gtop_mem.user;
 
-        this.label.text = _("Memory") + ": " + get_byte_usage_string(total, used);
+      this.label.text = _("Memory") + ": " + get_byte_usage_string(total, used);
     }
-};
+  });
 
-class Swap extends PopupMenu.PopupMenuItem {
-    constructor() {
-        super("");
+var Swap = GObject.registerClass({},
+  class Swap extends PopupMenu.PopupMenuItem {
+    _init() {
+      super._init("", {});
 
-        try {
-            this._gtop_swap = new GTop.glibtop_swap();
-        } catch(e) {
-            this._gtop_swap = null;
-            log(e);
-        }
+      try {
+        this._gtop_swap = new GTop.glibtop_swap();
+      } catch(e) {
+        this._gtop_swap = null;
+        log(e);
+      }
 
-        this.refresh();
-    }
-
-    refresh() {
-        GTop.glibtop_get_swap(this._gtop_swap);
-        let total = this._gtop_swap.total;
-        let used = this._gtop_swap.used;
-
-        this.label.text = _("Swap") + ": " + get_byte_usage_string(total, used);
-    }
-};
-
-class Mount extends PopupMenu.PopupMenuItem {
-    constructor(mount_point) {
-        super("");
-
-        this._mount_point = mount_point;
-        try {
-            this._gtop_fsusage = new GTop.glibtop_fsusage();
-        } catch(e) {
-            this._gtop_fsusage = null;
-            log(e);
-        }
-
-        this.refresh();
+      this.refresh();
     }
 
     refresh() {
-        GTop.glibtop_get_fsusage(this._gtop_fsusage, this._mount_point);
-        let total = this._gtop_fsusage.blocks * this._gtop_fsusage.block_size;
-        let free = this._gtop_fsusage.bavail * this._gtop_fsusage.block_size; // available for non-superusers
-        let used = total - this._gtop_fsusage.bfree * this._gtop_fsusage.block_size;
+      GTop.glibtop_get_swap(this._gtop_swap);
+      let total = this._gtop_swap.total;
+      let used = this._gtop_swap.used;
 
-        let text = "Unavailable";
-        if(total > 0) {
-          let percentage = ((used / total)*100).toFixed(1);
-          // convert to nicer display string including unit
-          total = GLib.format_size_full(total, GLib.FormatSizeFlags.DEFAULT)
-          free = GLib.format_size_full(free, GLib.FormatSizeFlags.DEFAULT)
-          let ratio = free + " free of " + total;
-          text = ratio + " (" + percentage.toString() + "% used)";
-        }
-
-        this.label.text = this._mount_point + "\n" + text;
+      this.label.text = _("Swap") + ": " + get_byte_usage_string(total, used);
     }
-};
+  });
+
+var Mount = GObject.registerClass({},
+  class Mount extends PopupMenu.PopupMenuItem {
+    _init(mount_point) {
+      super._init("", {});
+
+      this._mount_point = mount_point;
+      try {
+        this._gtop_fsusage = new GTop.glibtop_fsusage();
+      } catch(e) {
+        this._gtop_fsusage = null;
+        log(e);
+      }
+
+      this.refresh();
+    }
+
+    refresh() {
+      GTop.glibtop_get_fsusage(this._gtop_fsusage, this._mount_point);
+      let total = this._gtop_fsusage.blocks * this._gtop_fsusage.block_size;
+      let free = this._gtop_fsusage.bavail * this._gtop_fsusage.block_size; // available for non-superusers
+      let used = total - this._gtop_fsusage.bfree * this._gtop_fsusage.block_size;
+
+      let text = "Unavailable";
+      if(total > 0) {
+        let percentage = ((used / total)*100).toFixed(1);
+        // convert to nicer display string including unit
+        total = GLib.format_size_full(total, GLib.FormatSizeFlags.DEFAULT)
+        free = GLib.format_size_full(free, GLib.FormatSizeFlags.DEFAULT)
+        let ratio = free + " free of " + total;
+        text = ratio + " (" + percentage.toString() + "% used)";
+      }
+
+      this.label.text = this._mount_point + "\n" + text;
+    }
+  });
 
 function interesting_mountpoint(mount){
     // from https://github.com/paradoxxxzero/gnome-shell-system-monitor-applet
@@ -186,8 +189,8 @@ function interesting_mountpoint(mount){
 }
 
 
-var SystemInfoIndicator = GObject.registerClass({
-}, class SystemInfoIndicatorClass extends PanelMenu.Button {
+var SystemInfoIndicator = GObject.registerClass({},
+  class SystemInfoIndicatorClass extends PanelMenu.Button {
     _init() {
         super._init(0.0, "SystemInfoIndicator");
 
@@ -243,7 +246,7 @@ var SystemInfoIndicator = GObject.registerClass({
         hbox.add_child(this._cpu_label);
         hbox.add_child(this._mem_text);
         hbox.add_child(this._mem_label);
-        this.actor.add_child(hbox);
+        this.add_child(hbox);
 
         try {
             this._gtop_cpu = new GTop.glibtop_cpu();
