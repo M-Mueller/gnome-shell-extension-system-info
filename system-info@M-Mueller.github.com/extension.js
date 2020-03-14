@@ -419,7 +419,7 @@ var SystemInfoIndicator = GObject.registerClass({},
     }
 
     show_systemmonitor() {
-        Util.spawnApp(["gnome-system-monitor"]);
+        Util.trySpawn(["gnome-system-monitor"]);
     }
 
     init_timeout() {
