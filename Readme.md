@@ -11,3 +11,10 @@ Copy the **system-info@<span>M-Mueller.github</span>.com** folder to ~/.local/sh
 - 3.30
 - 3.32
 - 3.34
+
+Requirements
+------------
+### Ubuntu 20.04
+```
+sudo apt install gir1.2-gtop-2.0
+```
